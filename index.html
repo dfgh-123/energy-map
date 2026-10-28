@@ -162,6 +162,16 @@
   }
   #hint.hide{opacity:0}
 
+  #zoomer{position:absolute;right:14px;bottom:14px;z-index:9;display:flex;flex-direction:column;gap:6px}
+  #zoomer button{
+    width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+    font-size:14px;line-height:1;color:var(--muted);
+    background:rgba(10,15,22,.8);border:1px solid var(--line2);
+    backdrop-filter:blur(8px);transition:.15s;
+  }
+  #zoomer button:hover{color:var(--text);border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.12)}
+  #zoomer button:active{transform:scale(.94)}
+
   /* svg bits */
   .band-label{font:11px/1 var(--mono);letter-spacing:.18em;fill:rgba(255,255,255,.22);text-transform:uppercase}
   .chain-label{font:11.5px/1 "Noto Sans SC",sans-serif;letter-spacing:.1em;fill:rgba(255,255,255,.3)}
@@ -289,6 +299,7 @@
     #pbody{padding:22px 18px 34px}
     #pbody h2{font-size:20px}
     #hint{font-size:10.5px;padding:5px 10px;bottom:12px}
+    #zoomer{right:10px;bottom:56px}
   }
 </style>
 </head>
@@ -349,6 +360,11 @@
     <div id="stage">
       <svg id="map"></svg>
       <div id="hint">拖拽平移 · 滚轮缩放 · 点击节点查看它是什么、连着谁</div>
+      <div id="zoomer">
+        <button data-z="in" title="放大">＋</button>
+        <button data-z="out" title="缩小">－</button>
+        <button data-z="fit" title="适应屏幕">⤢</button>
+      </div>
     </div>
 
     <div class="scrim" id="scrim"></div>
@@ -935,7 +951,7 @@ svg.addEventListener('wheel',function(e){
 
 stage.addEventListener('pointerdown',function(e){
   if(e.pointerType==='mouse'&&e.button!==0) return;
-  if(e.target.closest('#panel')) return;
+  if(e.target.closest('#panel')||e.target.closest('#zoomer')) return;
   pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   stopTween();
   if(pts.size===1){
@@ -1132,6 +1148,8 @@ function goChapter(id){
   else if(!inited){ stopTween(); fit(); }
   else fitAnim();
   inited=true;
+  // 手机上「学习路径」的内容只在抽屉里，自动拉开，否则看起来毫无反应
+  if(c.id==='paths'&&isPhone()) openRail();
   hideHint();
 }
 
@@ -1164,7 +1182,7 @@ function stepCh(d){
 
 document.getElementById('stat').innerHTML=
   '<b>'+NODES.length+'</b> 个节点 · <b>'+EDGES.length+'</b> 条关联<br>'+
-  '三层结构：科学 → 技术 → 系统';
+  '三层结构：科学 → 技术 → 系统 · <b>v3</b>';
 
 /* ============================================================
    搜索
@@ -1227,12 +1245,23 @@ document.addEventListener('click',function(e){
 const railEl=document.getElementById('rail');
 const scrimEl=document.getElementById('scrim');
 function closeRail(){ railEl.classList.remove('show'); scrimEl.classList.remove('on'); }
+function openRail(){ railEl.classList.add('show'); scrimEl.classList.add('on'); }
 document.getElementById('menu').addEventListener('click',function(e){
   e.stopPropagation();
   if(railEl.classList.contains('show')) closeRail();
   else { railEl.classList.add('show'); scrimEl.classList.add('on'); }
 });
 scrimEl.addEventListener('click',closeRail);
+
+document.querySelectorAll('#zoomer button').forEach(function(b){
+  b.addEventListener('click',function(){
+    const z=b.getAttribute('data-z');
+    if(z==='fit'){ stopTween(); fit(); hideHint(); return; }
+    const r=svg.getBoundingClientRect();
+    zoomAt(r.width/2,r.height/2,z==='in'?1.35:1/1.35);
+    hideHint();
+  });
+});
 
 if(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches){
   hint.textContent='单指拖动 · 双指缩放 · 双击放大 · 点节点看详情';
