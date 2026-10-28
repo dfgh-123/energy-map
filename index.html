@@ -91,7 +91,7 @@
     font:10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
     color:var(--dim);margin:0 0 10px;
   }
-  .block{margin-bottom:22px}
+  .block{margin-bottom:16px}
   /* 章节条 */
   #chapters{
     flex:0 0 44px;display:flex;align-items:center;gap:10px;
@@ -112,7 +112,8 @@
 
   /* 目录 */
   .tocblock{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:16px}
-  #toc{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:1px;margin:0 -5px;padding-right:4px}
+  #toc{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:1px;margin:0 -5px;padding-right:4px;
+    -webkit-mask-image:linear-gradient(#000 calc(100% - 20px),transparent);mask-image:linear-gradient(#000 calc(100% - 20px),transparent)}
   .toc-item{
     display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;
     font-size:12.5px;color:var(--muted);text-align:left;transition:.14s;width:100%;
@@ -131,8 +132,8 @@
   .legend .row{display:flex;align-items:center;gap:8px}
   .legend .sw{width:8px;height:8px;border-radius:2px}
   .note{
-    font-size:11px;color:var(--dim);line-height:1.7;border-top:1px solid var(--line);
-    padding-top:12px;margin-top:4px;
+    font-size:11px;color:var(--dim);line-height:1.6;border-top:1px solid var(--line);
+    padding-top:10px;margin-top:0;
   }
   .note b{color:var(--muted);font-weight:500}
   kbd{
@@ -257,10 +258,37 @@
   ol.steps span{font-size:13.5px}
   ol.steps em{margin-left:auto;font:10px/1 var(--mono);font-style:normal;color:var(--dim);letter-spacing:.08em}
 
+  #menu{display:none;width:28px;padding:0;place-items:center;font-size:13px;flex:0 0 auto}
+  .scrim{
+    position:absolute;inset:0;z-index:11;background:rgba(4,7,11,.62);
+    backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .26s;
+  }
+  .scrim.on{opacity:1;pointer-events:auto}
+
   @media (max-width:900px){
-    #rail{position:absolute;left:0;top:0;bottom:0;z-index:12;background:#0a0e14;transform:translateX(-100%);transition:.25s}
+    #rail{
+      position:absolute;left:0;top:0;bottom:0;z-index:12;width:250px;flex-basis:250px;
+      background:#0a0e14;transform:translateX(-101%);
+      transition:transform .26s cubic-bezier(.4,0,.2,1);
+      box-shadow:12px 0 40px rgba(0,0,0,.55);
+    }
     #rail.show{transform:none}
+    #menu{display:grid}
     .brand .en{display:none}
+  }
+  @media (max-width:640px){
+    header{height:50px;flex:0 0 50px;gap:9px;padding:0 10px 0 14px}
+    .brand h1{font-size:14px}
+    .search input{height:30px;font-size:12px}
+    .tools #fit,.tools #reset{display:none}
+    .pager{display:none}
+    #chapters{padding:0 10px 0 6px;gap:6px;height:40px;flex-basis:40px}
+    .cbtn{padding:0 8px;font-size:11.5px;height:26px}
+    #cnum{min-width:34px;font-size:9.5px}
+    #panel{width:100%}
+    #pbody{padding:22px 18px 34px}
+    #pbody h2{font-size:20px}
+    #hint{font-size:10.5px;padding:5px 10px;bottom:12px}
   }
 </style>
 </head>
@@ -285,6 +313,7 @@
   </header>
 
   <nav id="chapters">
+    <button class="tbtn" id="menu" title="目录">☰</button>
     <div class="ch"></div>
     <div class="pager">
       <button class="tbtn" id="prev" title="上一章（←）">←</button>
@@ -321,6 +350,8 @@
       <svg id="map"></svg>
       <div id="hint">拖拽平移 · 滚轮缩放 · 点击节点查看它是什么、连着谁</div>
     </div>
+
+    <div class="scrim" id="scrim"></div>
 
     <aside id="panel">
       <button class="close" id="close">✕</button>
@@ -692,11 +723,13 @@ let tween=null;
 function applyView(){
   vp.setAttribute('transform','translate('+view.tx+' '+view.ty+') scale('+view.k+')');
 }
+function isPhone(){ return stage.clientWidth<700; }
+
 function fit(){
   const w=stage.clientWidth,h=stage.clientHeight;
   const pad=26;
   const k=Math.min((w-pad*2)/WORLD.w,(h-pad*2)/WORLD.h);
-  view.k=clamp(k,0.3,1.2);
+  view.k=clamp(k,0.22,1.2);
   view.tx=(w-WORLD.w*view.k)/2;
   view.ty=(h-WORLD.h*view.k)/2;
   applyView();
@@ -796,7 +829,7 @@ function clearSelection(){
 
 function ensureVisible(n){
   const w=stage.clientWidth,h=stage.clientHeight;
-  const panelW=panelOpen?Math.min(392,w*0.48):0;
+  const panelW=(w<640||!panelOpen)?0:Math.min(392,w*0.48);
   const sx=view.tx+n.x*view.k, sy=view.ty+n.y*view.k;
   const padX=90,padY=70;
   if(sx>padX&&sx<w-panelW-padX&&sy>padY&&sy<h-padY) return;
@@ -866,69 +899,133 @@ function openPath(p){
   const cx=(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
   const cy=(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
   const w=stage.clientWidth,h=stage.clientHeight;
-  const panelW=Math.min(392,w*0.48);
+  const panelW=w<640?0:Math.min(392,w*0.48);
   const k=clamp(view.k,0.55,1);
   animateTo(k,(w-panelW)/2-cx*k,h/2-cy*k);
   hideHint();
 }
 
 /* ============================================================
-   交互：缩放 / 平移
+   交互：缩放 / 平移 / 双指
    ============================================================ */
-let drag=null;
+const pts=new Map();
+let gesture=null;
+let lastTap=0,lastTapPos=null;
+
+function localPt(e){
+  const r=svg.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+function zoomAt(cx,cy,factor){
+  const k2=clamp(view.k*factor,0.22,3);
+  const f=k2/view.k;
+  view.tx=cx-(cx-view.tx)*f;
+  view.ty=cy-(cy-view.ty)*f;
+  view.k=k2;
+  applyView();
+}
 
 svg.addEventListener('wheel',function(e){
   e.preventDefault();
   stopTween();
-  const r=svg.getBoundingClientRect();
-  const mx=e.clientX-r.left,my=e.clientY-r.top;
-  const k2=clamp(view.k*Math.exp(-e.deltaY*0.0013),0.28,2.8);
-  const f=k2/view.k;
-  view.tx=mx-(mx-view.tx)*f;
-  view.ty=my-(my-view.ty)*f;
-  view.k=k2;
-  applyView();
+  const p=localPt(e);
+  zoomAt(p.x,p.y,Math.exp(-e.deltaY*0.0013));
   hideHint();
 },{passive:false});
 
 stage.addEventListener('pointerdown',function(e){
-  if(e.button!==0) return;
+  if(e.pointerType==='mouse'&&e.button!==0) return;
   if(e.target.closest('#panel')) return;
-  drag={x:e.clientX,y:e.clientY,tx:view.tx,ty:view.ty,moved:false,id:e.pointerId};
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
   stopTween();
+  if(pts.size===1){
+    gesture={type:'pan',x:e.clientX,y:e.clientY,tx:view.tx,ty:view.ty,moved:false,id:e.pointerId};
+  }else if(pts.size===2){
+    const a=Array.from(pts.values());
+    const r=svg.getBoundingClientRect();
+    const mx=(a[0].x+a[1].x)/2-r.left, my=(a[0].y+a[1].y)/2-r.top;
+    const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1;
+    gesture={type:'pinch',d0:d,k0:view.k,moved:true,
+      w0:{x:(mx-view.tx)/view.k,y:(my-view.ty)/view.k}};
+    pts.forEach(function(v,id){ try{stage.setPointerCapture(id);}catch(err){} });
+    suppressHover=true; setHover(null); hideHint();
+  }
 });
+
 stage.addEventListener('pointermove',function(e){
-  if(!drag||e.pointerId!==drag.id) return;
-  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
-  if(!drag.moved&&Math.abs(dx)+Math.abs(dy)>4){
-    drag.moved=true;
-    stage.classList.add('grabbing');
-    stage.setPointerCapture(drag.id);
-    suppressHover=true;
-    setHover(null);
-    hideHint();
-  }
-  if(drag.moved){
-    view.tx=drag.tx+dx;view.ty=drag.ty+dy;
+  if(!pts.has(e.pointerId)) return;
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(!gesture) return;
+
+  if(gesture.type==='pinch'&&pts.size>=2){
+    const a=Array.from(pts.values());
+    const r=svg.getBoundingClientRect();
+    const mx=(a[0].x+a[1].x)/2-r.left, my=(a[0].y+a[1].y)/2-r.top;
+    const d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)||1;
+    const k=clamp(gesture.k0*(d/gesture.d0),0.22,3);
+    view.k=k;
+    view.tx=mx-gesture.w0.x*k;
+    view.ty=my-gesture.w0.y*k;
     applyView();
+    return;
+  }
+
+  if(gesture.type==='pan'){
+    const dx=e.clientX-gesture.x, dy=e.clientY-gesture.y;
+    if(!gesture.moved&&Math.abs(dx)+Math.abs(dy)>4){
+      gesture.moved=true;
+      stage.classList.add('grabbing');
+      try{stage.setPointerCapture(e.pointerId);}catch(err){}
+      suppressHover=true;
+      setHover(null);
+      hideHint();
+    }
+    if(gesture.moved){ view.tx=gesture.tx+dx; view.ty=gesture.ty+dy; applyView(); }
   }
 });
-stage.addEventListener('pointerup',function(e){
-  if(!drag) return;
-  const moved=drag.moved;
-  drag=null;
+
+function endPointer(e){
+  if(!pts.has(e.pointerId)) return;
+  pts.delete(e.pointerId);
+
+  if(gesture&&gesture.type==='pinch'){
+    if(pts.size>=1){
+      const id=pts.keys().next().value, p=pts.get(id);
+      gesture={type:'pan',x:p.x,y:p.y,tx:view.tx,ty:view.ty,moved:true,id:id};
+    }else{
+      gesture=null; suppressHover=false; stage.classList.remove('grabbing');
+    }
+    return;
+  }
+  if(!gesture) return;
+
+  const moved=gesture.moved, id=gesture.id;
+  gesture=null;
   stage.classList.remove('grabbing');
   suppressHover=false;
+
   if(moved){
-    suppressClick=true;
-    setTimeout(function(){suppressClick=false;},60);
-  }else if(!e.target.closest('.node')&&!e.target.closest('#panel')){
-    clearSelection();
+    suppressClick=true; setTimeout(function(){suppressClick=false;},60);
+    return;
   }
-});
-stage.addEventListener('pointercancel',function(){
-  drag=null;stage.classList.remove('grabbing');suppressHover=false;
-});
+  if(id!==e.pointerId) return;
+
+  if(e.pointerType!=='mouse'){
+    const now=Date.now();
+    if(lastTapPos&&now-lastTap<320&&Math.hypot(e.clientX-lastTapPos.x,e.clientY-lastTapPos.y)<30){
+      const p=localPt(e);
+      zoomAt(p.x,p.y,1.9);
+      lastTap=0; lastTapPos=null;
+      suppressClick=true; setTimeout(function(){suppressClick=false;},60);
+      hideHint();
+      return;
+    }
+    lastTap=now; lastTapPos={x:e.clientX,y:e.clientY};
+  }
+  if(!e.target.closest('.node')&&!e.target.closest('#panel')) clearSelection();
+}
+stage.addEventListener('pointerup',endPointer);
+stage.addEventListener('pointercancel',endPointer);
 
 /* ============================================================
    章节（翻页）
@@ -957,7 +1054,7 @@ const chBox=document.querySelector('#chapters .ch');
 CHAPTERS.forEach(function(c){
   const b=document.createElement('button');
   b.className='cbtn'; b.textContent=c.name; b.setAttribute('data-c',c.id);
-  b.addEventListener('click',function(){ nav('#/'+c.id); });
+  b.addEventListener('click',function(){ closeRail(); nav('#/'+c.id); });
   chBox.appendChild(b);
 });
 
@@ -995,6 +1092,7 @@ function renderToc(){
   box.innerHTML=html;
   box.querySelectorAll('.toc-item').forEach(function(b){
     b.addEventListener('click',function(){
+      closeRail();
       if(b.hasAttribute('data-n')) nav('#/n/'+b.getAttribute('data-n'));
       else nav('#/p/'+b.getAttribute('data-p'));
     });
@@ -1011,14 +1109,14 @@ function markToc(){
 
 function frameBand(y0,y1,instant){
   const w=stage.clientWidth,h=stage.clientHeight;
-  const k=clamp(Math.min((w-70)/1360,(h-90)/(y1-y0)),0.3,1.6);
+  const k=clamp(Math.min((w-70)/1360,(h-90)/(y1-y0)),w<700?0.8:0.3,1.6);
   const tx=w/2-700*k, ty=h/2-((y0+y1)/2)*k;
   if(instant){ stopTween(); view.k=k; view.tx=tx; view.ty=ty; applyView(); }
   else animateTo(k,tx,ty);
 }
 function fitAnim(){
   const w=stage.clientWidth,h=stage.clientHeight;
-  const k=clamp(Math.min((w-52)/WORLD.w,(h-52)/WORLD.h),0.3,1.2);
+  const k=clamp(Math.min((w-52)/WORLD.w,(h-52)/WORLD.h),0.22,1.2);
   animateTo(k,(w-WORLD.w*k)/2,(h-WORLD.h*k)/2);
 }
 
@@ -1055,7 +1153,8 @@ function applyHash(){
   }
   let ok=false;
   CHAPTERS.forEach(function(c){ if(c.id===raw) ok=true; });
-  goChapter(ok?raw:'overview');
+  if(ok&&raw) goChapter(raw);
+  else goChapter(isPhone()?'tech':'overview');
 }
 
 function stepCh(d){
@@ -1125,6 +1224,21 @@ document.addEventListener('click',function(e){
 /* ============================================================
    其它
    ============================================================ */
+const railEl=document.getElementById('rail');
+const scrimEl=document.getElementById('scrim');
+function closeRail(){ railEl.classList.remove('show'); scrimEl.classList.remove('on'); }
+document.getElementById('menu').addEventListener('click',function(e){
+  e.stopPropagation();
+  if(railEl.classList.contains('show')) closeRail();
+  else { railEl.classList.add('show'); scrimEl.classList.add('on'); }
+});
+scrimEl.addEventListener('click',closeRail);
+
+if(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches){
+  hint.textContent='单指拖动 · 双指缩放 · 双击放大 · 点节点看详情';
+}
+if(isPhone()) q.placeholder='搜索学科或技术…';
+
 document.getElementById('fit').addEventListener('click',function(){stopTween();fit();});
 document.getElementById('reset').addEventListener('click',function(){ nav('#/overview'); });
 document.getElementById('close').addEventListener('click',clearSelection);
