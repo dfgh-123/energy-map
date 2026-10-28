@@ -295,8 +295,18 @@
     #chapters{padding:0 10px 0 6px;gap:6px;height:40px;flex-basis:40px}
     .cbtn{padding:0 8px;font-size:11.5px;height:26px}
     #cnum{min-width:34px;font-size:9.5px}
-    #panel{width:100%}
-    #pbody{padding:22px 18px 34px}
+    #panel{
+      width:100%;top:auto;height:58%;border-left:none;border-top:1px solid var(--line2);
+      border-radius:16px 16px 0 0;transform:translateY(101%);
+      box-shadow:0 -18px 50px rgba(0,0,0,.55);
+    }
+    #panel.open{transform:none}
+    #panel::before{
+      content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+      width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);
+    }
+    #panel .close{top:12px;right:12px}
+    #pbody{padding:26px 18px 30px}
     #pbody h2{font-size:20px}
     #hint{font-size:10.5px;padding:5px 10px;bottom:12px}
     #zoomer{right:10px;bottom:56px}
@@ -836,6 +846,12 @@ function closePanel(){
   if(selected){ selected=null; nodeEls.forEach(function(g){g.classList.remove('sel');}); paint(); }
 }
 function clearSelection(){
+  // 路径模式：只收起说明，保留地图上的路径高亮，方便对着地图看
+  if(activePath){
+    panelOpen=false; panel.classList.remove('open');
+    selected=null; paint(); markToc();
+    return;
+  }
   if(location.hash&&location.hash!=='#/'+chapter){ nav('#/'+chapter); return; }
   activePath=null; selected=null;
   closePanel();
@@ -843,13 +859,19 @@ function clearSelection(){
   markToc();
 }
 
+function sheetH(){
+  return (panelOpen&&isPhone())?stage.clientHeight*0.58:0;
+}
+
 function ensureVisible(n){
   const w=stage.clientWidth,h=stage.clientHeight;
-  const panelW=(w<640||!panelOpen)?0:Math.min(392,w*0.48);
+  const sh=sheetH();
+  const panelW=(isPhone()||!panelOpen)?0:Math.min(392,w*0.48);
+  const availH=h-sh;
   const sx=view.tx+n.x*view.k, sy=view.ty+n.y*view.k;
   const padX=90,padY=70;
-  if(sx>padX&&sx<w-panelW-padX&&sy>padY&&sy<h-padY) return;
-  const cx=(w-panelW)/2, cy=h/2;
+  if(sx>padX&&sx<w-panelW-padX&&sy>padY&&sy<availH-padY) return;
+  const cx=(w-panelW)/2, cy=availH/2;
   animateTo(view.k,cx-n.x*view.k,cy-n.y*view.k);
 }
 
@@ -909,15 +931,19 @@ function openPath(p){
   openPanel();
   paint();
   markToc();
-  // 路径整体居中
+  // 把整条路径框进“面板之外的可见区域”
   const xs=p.steps.map(function(id){return N[id].x;});
   const ys=p.steps.map(function(id){return N[id].y;});
-  const cx=(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
-  const cy=(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
+  const minX=Math.min.apply(null,xs), maxX=Math.max.apply(null,xs);
+  const minY=Math.min.apply(null,ys), maxY=Math.max.apply(null,ys);
+  const cx=(minX+maxX)/2, cy=(minY+maxY)/2;
   const w=stage.clientWidth,h=stage.clientHeight;
-  const panelW=w<640?0:Math.min(392,w*0.48);
-  const k=clamp(view.k,0.55,1);
-  animateTo(k,(w-panelW)/2-cx*k,h/2-cy*k);
+  const sh=sheetH();
+  const availW=isPhone()?w:(w-Math.min(392,w*0.48));
+  const availH=h-sh;
+  const boxW=(maxX-minX)+280, boxH=(maxY-minY)+240;
+  const k=clamp(Math.min(availW/boxW,availH/boxH),0.26,1.1);
+  animateTo(k,availW/2-cx*k,availH/2-cy*k);
   hideHint();
 }
 
@@ -1118,8 +1144,11 @@ function renderToc(){
 
 function markToc(){
   document.querySelectorAll('.toc-item').forEach(function(b){
-    const id=b.getAttribute('data-n');
-    b.classList.toggle('on',!!id&&id===selected);
+    const nid=b.getAttribute('data-n'), pid=b.getAttribute('data-p');
+    let on=false;
+    if(nid) on=(nid===selected);
+    else if(pid) on=!!(activePath&&activePath.id===pid);
+    b.classList.toggle('on',on);
   });
 }
 
@@ -1182,7 +1211,7 @@ function stepCh(d){
 
 document.getElementById('stat').innerHTML=
   '<b>'+NODES.length+'</b> 个节点 · <b>'+EDGES.length+'</b> 条关联<br>'+
-  '三层结构：科学 → 技术 → 系统 · <b>v3</b>';
+  '三层结构：科学 → 技术 → 系统 · <b>v4</b>';
 
 /* ============================================================
    搜索
