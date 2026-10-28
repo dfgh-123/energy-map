@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>能源专业地图 · Energy Discipline Map</title>
+<meta name="description" content="把能源从基础科学、技术器件到系统社会串成一张可交互的地图：49 个节点、125 条关联、四条学习路径。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="能源专业地图">
+<meta property="og:description" content="49 个节点、125 条关联，从热力学与电化学到电池、光伏、电网与政策，一张可缩放、可点开的能源学科地图。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0e14'/%3E%3Cpath d='M17.5 6 9 18h6l-1.5 8L23 14h-6z' fill='%23fbbf24'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#080b10;
+    --panel:rgba(12,17,24,.94);
+    --line:rgba(255,255,255,.08);
+    --line2:rgba(255,255,255,.14);
+    --text:#e8eef5;
+    --muted:#8b98a8;
+    --dim:#5d6b7c;
+    --base:#38bdf8;
+    --tech:#fbbf24;
+    --sys:#a78bfa;
+    --mono:ui-monospace,"SF Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg);color:var(--text);overflow:hidden;
+    font:14px/1.65 "Noto Sans SC","Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+  ::selection{background:rgba(56,189,248,.3)}
+
+  #app{height:100%;display:flex;flex-direction:column}
+
+  /* ---------- header ---------- */
+  header{
+    height:58px;flex:0 0 58px;display:flex;align-items:center;gap:18px;
+    padding:0 16px 0 20px;border-bottom:1px solid var(--line);
+    background:rgba(8,11,16,.92);backdrop-filter:blur(14px);z-index:20;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .brand h1{font-size:16px;font-weight:600;margin:0;letter-spacing:.02em}
+  .brand .en{font:11px/1 var(--mono);color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+  .search{position:relative;flex:1;max-width:420px;margin-left:auto}
+  .search input{
+    width:100%;height:34px;padding:0 12px 0 32px;border-radius:8px;
+    background:rgba(255,255,255,.045);border:1px solid var(--line);
+    color:var(--text);font-size:13px;outline:none;transition:.18s;
+  }
+  .search input:focus{border-color:rgba(56,189,248,.5);background:rgba(56,189,248,.06)}
+  .search input::placeholder{color:var(--dim)}
+  .search .ico{
+    position:absolute;left:11px;top:50%;transform:translateY(-50%);
+    width:13px;height:13px;opacity:.45;pointer-events:none;
+  }
+  #results{
+    position:absolute;top:40px;left:0;right:0;z-index:40;display:none;
+    background:#0d131b;border:1px solid var(--line2);border-radius:10px;
+    box-shadow:0 16px 40px rgba(0,0,0,.6);overflow:hidden;
+  }
+  #results.show{display:block}
+  #results button{
+    display:flex;align-items:center;gap:9px;width:100%;padding:8px 12px;
+    text-align:left;font-size:13px;border-bottom:1px solid rgba(255,255,255,.04);
+  }
+  #results button:last-child{border-bottom:none}
+  #results button:hover,#results button.act{background:rgba(56,189,248,.10)}
+  #results .dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px}
+  #results .ly{margin-left:auto;font:10px/1 var(--mono);color:var(--dim);letter-spacing:.08em}
+
+  .tools{display:flex;gap:6px}
+  .tbtn{
+    height:30px;padding:0 11px;border-radius:7px;font-size:12px;color:var(--muted);
+    border:1px solid var(--line);background:rgba(255,255,255,.03);transition:.16s;
+  }
+  .tbtn:hover{color:var(--text);border-color:var(--line2);background:rgba(255,255,255,.07)}
+
+  /* ---------- main ---------- */
+  #main{flex:1;display:flex;min-height:0;position:relative}
+
+  /* rail */
+  #rail{
+    width:214px;flex:0 0 214px;border-right:1px solid var(--line);
+    padding:16px 14px 18px;overflow:hidden;background:rgba(255,255,255,.012);
+    display:flex;flex-direction:column;
+  }
+  #rail h2{
+    font:10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);margin:0 0 10px;
+  }
+  .block{margin-bottom:22px}
+  /* 章节条 */
+  #chapters{
+    flex:0 0 44px;display:flex;align-items:center;gap:10px;
+    padding:0 16px 0 20px;border-bottom:1px solid var(--line);
+    background:rgba(10,14,20,.72);z-index:19;
+  }
+  #chapters .ch{display:flex;gap:3px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+  #chapters .ch::-webkit-scrollbar{display:none}
+  .cbtn{
+    height:28px;padding:0 13px;border-radius:7px;font-size:12.5px;
+    color:var(--muted);border:1px solid transparent;transition:.16s;white-space:nowrap;
+  }
+  .cbtn:hover{color:var(--text);background:rgba(255,255,255,.06)}
+  .cbtn.on{color:#07111a;background:#dce9f6;font-weight:600}
+  .pager{display:flex;align-items:center;gap:6px;flex:0 0 auto}
+  #cnum{font:10px/1 var(--mono);color:var(--dim);letter-spacing:.12em;min-width:40px;text-align:center}
+  #prev,#next{width:28px;padding:0;display:grid;place-items:center;font-size:13px}
+
+  /* 目录 */
+  .tocblock{flex:1;min-height:0;display:flex;flex-direction:column;margin-bottom:16px}
+  #toc{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:1px;margin:0 -5px;padding-right:4px}
+  .toc-item{
+    display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;
+    font-size:12.5px;color:var(--muted);text-align:left;transition:.14s;width:100%;
+  }
+  .toc-item:hover{background:rgba(255,255,255,.06);color:var(--text)}
+  .toc-item.on{background:rgba(56,189,248,.16);color:#fff}
+  .toc-item i{width:5px;height:5px;border-radius:50%;flex:0 0 5px;font-style:normal}
+  .toc-item em{margin-left:auto;font:9.5px/1 var(--mono);color:var(--dim);font-style:normal}
+  .toc-group{
+    font:9.5px/1 var(--mono);letter-spacing:.14em;color:var(--dim);
+    margin:12px 6px 5px;text-transform:uppercase;
+  }
+  .toc-group:first-child{margin-top:0}
+
+  .legend{display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:var(--dim);line-height:1.5}
+  .legend .row{display:flex;align-items:center;gap:8px}
+  .legend .sw{width:8px;height:8px;border-radius:2px}
+  .note{
+    font-size:11px;color:var(--dim);line-height:1.7;border-top:1px solid var(--line);
+    padding-top:12px;margin-top:4px;
+  }
+  .note b{color:var(--muted);font-weight:500}
+  kbd{
+    font:10px/1 var(--mono);padding:2px 4px;border-radius:3px;
+    background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--muted);
+  }
+
+  /* stage */
+  #stage{
+    flex:1;position:relative;overflow:hidden;min-width:0;
+    background:
+      radial-gradient(900px 500px at 30% 0%,rgba(56,189,248,.055),transparent 60%),
+      radial-gradient(700px 400px at 85% 100%,rgba(167,139,250,.045),transparent 60%),
+      #080b10;
+    cursor:grab;
+  }
+  #stage.grabbing{cursor:grabbing}
+  #map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+
+  #hint{
+    position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+    font-size:11.5px;color:var(--dim);white-space:nowrap;
+    padding:6px 14px;border-radius:20px;background:rgba(8,11,16,.7);
+    border:1px solid var(--line);backdrop-filter:blur(8px);
+    transition:opacity .6s;pointer-events:none;
+  }
+  #hint.hide{opacity:0}
+
+  /* svg bits */
+  .band-label{font:11px/1 var(--mono);letter-spacing:.18em;fill:rgba(255,255,255,.22);text-transform:uppercase}
+  .chain-label{font:11.5px/1 "Noto Sans SC",sans-serif;letter-spacing:.1em;fill:rgba(255,255,255,.3)}
+
+  .link{fill:none;stroke:rgba(255,255,255,.095);stroke-width:1;vector-effect:non-scaling-stroke;transition:opacity .2s,stroke .2s}
+  .link.on{stroke:rgba(255,255,255,.55);opacity:1!important}
+  .link.path{stroke:rgba(56,189,248,.75);stroke-width:1.6}
+  .link.off{opacity:.07}
+
+  .node{cursor:pointer;transition:opacity .2s}
+  .node .pill{
+    fill:rgba(56,189,248,.09);stroke:rgba(56,189,248,.42);stroke-width:1;
+    vector-effect:non-scaling-stroke;transition:fill .18s,stroke .18s;
+  }
+  .node.tech .pill{fill:rgba(251,191,36,.09);stroke:rgba(251,191,36,.42)}
+  .node.sys  .pill{fill:rgba(167,139,250,.09);stroke:rgba(167,139,250,.42)}
+  .node .label{font-size:14.5px;font-weight:450;fill:#cddceb;pointer-events:none;transition:fill .18s}
+  .node.core .pill{fill-opacity:1;fill:rgba(56,189,248,.16);stroke-opacity:.85}
+  .node.core.tech .pill{fill:rgba(251,191,36,.16)}
+  .node.core.sys  .pill{fill:rgba(167,139,250,.16)}
+  .node.core .label{font-size:16px;font-weight:600;fill:#fff}
+  .node.hot .pill{stroke-width:2.4;fill-opacity:1}
+  .node.hot .label{fill:#fff}
+  .node.sel .pill{stroke-width:2.6;filter:url(#glow)}
+  .node.sel .label{fill:#fff}
+  .node.off{opacity:.13}
+  .node.fade{opacity:.35}
+  .num{
+    font:600 11px/1 var(--mono);fill:#0a0f16;opacity:0;pointer-events:none;
+  }
+  .node.inpath .num{opacity:1}
+  .num-bg{fill:#38bdf8;opacity:0}
+  .node.inpath .num-bg{opacity:1}
+
+  /* panel */
+  #panel{
+    position:absolute;top:0;right:0;bottom:0;width:min(392px,48%);z-index:15;
+    background:var(--panel);backdrop-filter:blur(20px);
+    border-left:1px solid var(--line2);overflow-y:auto;
+    transform:translateX(101%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+    box-shadow:-24px 0 60px rgba(0,0,0,.5);
+  }
+  #panel.open{transform:none}
+  #panel .close{
+    position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:7px;
+    display:grid;place-items:center;color:var(--dim);font-size:16px;
+  }
+  #panel .close:hover{background:rgba(255,255,255,.08);color:var(--text)}
+  #pbody{padding:26px 24px 40px}
+
+  .p-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .b{
+    font:10.5px/1 var(--mono);letter-spacing:.1em;padding:5px 8px;border-radius:5px;
+    border:1px solid;text-transform:uppercase;
+  }
+  .b.base{color:var(--base);border-color:rgba(56,189,248,.35);background:rgba(56,189,248,.09)}
+  .b.tech{color:var(--tech);border-color:rgba(251,191,36,.35);background:rgba(251,191,36,.09)}
+  .b.sys{color:var(--sys);border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.09)}
+  .b.chain{color:var(--muted);border-color:var(--line2);background:rgba(255,255,255,.04)}
+  .b.path{color:#0a0f16;background:var(--base);border-color:transparent;font-weight:700}
+
+  #pbody h2{font-size:22px;font-weight:600;margin:0 0 8px;letter-spacing:.01em}
+  .lede{font-size:13.5px;line-height:1.85;color:#a9b8c8;margin:0 0 4px}
+
+  .p-block{margin-top:26px}
+  .p-block h3{
+    font:10px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;
+    color:var(--dim);margin:0 0 11px;font-weight:500;
+  }
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chips span{
+    font-size:12px;padding:4px 9px;border-radius:5px;color:#9fb0c2;
+    background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06);
+  }
+  .lchip{
+    font-size:12px;padding:5px 10px;border-radius:6px;transition:.15s;
+    background:rgba(255,255,255,.04);border:1px solid var(--line);
+  }
+  .lchip:hover{background:rgba(255,255,255,.1);border-color:var(--line2)}
+  .lchip.base{color:#8fd4f8;border-color:rgba(56,189,248,.22)}
+  .lchip.tech{color:#f5cd74;border-color:rgba(251,191,36,.22)}
+  .lchip.sys{color:#c4b0fb;border-color:rgba(167,139,250,.22)}
+
+  ol.steps{list-style:none;margin:0;padding:0;counter-reset:st}
+  ol.steps li{
+    display:flex;align-items:center;gap:12px;padding:10px 8px;margin:0 -8px;
+    border-radius:8px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.045);
+  }
+  ol.steps li:hover{background:rgba(255,255,255,.05)}
+  ol.steps b{
+    flex:0 0 22px;height:22px;border-radius:50%;background:rgba(56,189,248,.16);
+    color:var(--base);font:600 11px/22px var(--mono);text-align:center;
+  }
+  ol.steps span{font-size:13.5px}
+  ol.steps em{margin-left:auto;font:10px/1 var(--mono);font-style:normal;color:var(--dim);letter-spacing:.08em}
+
+  @media (max-width:900px){
+    #rail{position:absolute;left:0;top:0;bottom:0;z-index:12;background:#0a0e14;transform:translateX(-100%);transition:.25s}
+    #rail.show{transform:none}
+    .brand .en{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <h1>能源专业地图</h1>
+      <span class="en">Energy Discipline Map</span>
+    </div>
+    <div class="search">
+      <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="7" cy="7" r="4.6"/><path d="M10.5 10.5 14 14"/>
+      </svg>
+      <input id="q" type="text" placeholder="搜索学科、技术或概念,如 电化学 / 储能 / 电网" autocomplete="off" spellcheck="false">
+      <div id="results"></div>
+    </div>
+    <div class="tools">
+      <button class="tbtn" id="fit">全览</button>
+      <button class="tbtn" id="reset">重置</button>
+    </div>
+  </header>
+
+  <nav id="chapters">
+    <div class="ch"></div>
+    <div class="pager">
+      <button class="tbtn" id="prev" title="上一章（←）">←</button>
+      <span id="cnum"></span>
+      <button class="tbtn" id="next" title="下一章（→）">→</button>
+    </div>
+  </nav>
+
+  <div id="main">
+    <aside id="rail">
+      <div class="block tocblock">
+        <h2 id="toch">本章目录</h2>
+        <div id="toc"></div>
+      </div>
+
+      <div class="block">
+        <h2>图例</h2>
+        <div class="legend">
+          <div class="row"><span class="sw" style="background:var(--base)"></span>基础科学 · 原理与约束</div>
+          <div class="row"><span class="sw" style="background:var(--tech)"></span>技术器件 · 转换与存储</div>
+          <div class="row"><span class="sw" style="background:var(--sys)"></span>系统社会 · 市场与政策</div>
+        </div>
+      </div>
+
+      <div class="note" id="stat"></div>
+      <div class="note">
+        <b>操作</b><br>
+        拖拽 平移 · 滚轮 缩放<br>
+        <kbd>点击</kbd> 节点看详情 · <kbd>Esc</kbd> 关闭
+      </div>
+    </aside>
+
+    <div id="stage">
+      <svg id="map"></svg>
+      <div id="hint">拖拽平移 · 滚轮缩放 · 点击节点查看它是什么、连着谁</div>
+    </div>
+
+    <aside id="panel">
+      <button class="close" id="close">✕</button>
+      <div id="pbody"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const NS='http://www.w3.org/2000/svg';
+const WORLD={w:1400,h:1060};
+
+/* ============================================================
+   数据：48 个节点，三层
+   l: base=基础科学 / tech=技术器件 / sys=系统社会
+   c: 能量链环节（仅技术层）
+   ============================================================ */
+const NODES=[
+  /* ---------- 基础层 ---------- */
+  {id:'math',n:'数学与计算',l:'base',x:100,y:860,a:'优化 数值 建模',
+   d:'优化、数值方法与数据分析。能源系统动不动就是上万个变量，这里提供的是建模和求解的语言。',
+   k:['凸优化','动态系统','不确定性']},
+  {id:'mech',n:'经典力学',l:'base',x:205,y:780,a:'牛顿 动量 功',
+   d:'力、功与动量。这是“能量”概念最早被定义的地方——能量之所以有意义，是因为它能做功。',
+   k:['功与能','动量守恒','振动']},
+  {id:'fluid',n:'流体力学',l:'base',x:205,y:940,a:'湍流 空气动力学',
+   d:'风、水、燃气和热量的载体如何流动。风机叶片与燃气轮机叶栅的外形，几乎全部由它决定。',
+   k:['伯努利','边界层','湍流']},
+  {id:'statphys',n:'统计物理',l:'base',x:315,y:780,a:'熵 相变',
+   d:'从微观状态推到宏观量。熵、温度和自由能这些概念，严格来说都是从这里长出来的。',
+   k:['系综','熵','相变']},
+  {id:'thermo',n:'热力学',l:'base',core:1,x:315,y:890,a:'热学 熵 火用 卡诺',
+   d:'能量守恒与不可逆性的总账本。第一定律管“有多少”，第二定律管“还能用多少”——所有能量转换的效率天花板都由它设定。',
+   k:['第一定律','第二定律','火用 exergy','卡诺极限']},
+  {id:'heatmass',n:'传热传质',l:'base',x:430,y:780,a:'导热 对流 辐射',
+   d:'热怎么传、物质怎么扩散。它直接决定器件能承受多大功率密度——散热往往是工程里真正的瓶颈。',
+   k:['导热','对流','辐射','换热器']},
+  {id:'chemthermo',n:'化学热力学',l:'base',x:430,y:940,a:'反应热 吉布斯',
+   d:'反应热、化学势与平衡。燃料烧掉能放多少热、合成燃料划不划算，在这里算账。',
+   k:['焓','吉布斯自由能','平衡常数']},
+  {id:'qm',n:'量子力学',l:'base',x:545,y:780,a:'能级 跃迁',
+   d:'能级与跃迁。光伏、催化、核能这三件看似无关的事，微观起点都在这里。',
+   k:['波函数','能级','隧穿']},
+  {id:'catalysis',n:'催化',l:'base',x:545,y:940,a:'催化剂 电催化',
+   d:'降低反应活化能。它决定了合成燃料、电解水、脱碳这些事的经济性上限。',
+   k:['活性位','选择性','电催化']},
+  {id:'solid',n:'固体物理',l:'base',core:1,x:660,y:780,a:'能带 半导体',
+   d:'能带与载流子。光伏、LED、功率半导体，本质上都是同一套能带理论的不同应用。',
+   k:['能带','掺杂','载流子迁移率']},
+  {id:'electrochem',n:'电化学',l:'base',core:1,x:660,y:890,a:'电池 界面 SEI',
+   d:'化学能与电能互转的界面科学。电池、燃料电池、电解槽共用这一套语言——难点几乎都在“界面”上。',
+   k:['Nernst 方程','过电位','SEI 膜','离子输运']},
+  {id:'matsei',n:'材料科学',l:'base',x:780,y:835,a:'材料 表征 失效',
+   d:'结构—性能—工艺的关系。所有能源器件的天花板，最后都落在某种材料的极限上。',
+   k:['晶体结构','缺陷','表征','失效']},
+  {id:'em',n:'电磁学',l:'base',x:895,y:940,a:'电场 电路 麦克斯韦',
+   d:'电场、磁场与电路规律。发电机、变压器、电机、无线传能，全部是它的应用。',
+   k:['麦克斯韦','电磁感应','电路']},
+  {id:'control',n:'控制理论',l:'base',x:895,y:780,a:'反馈 稳定性',
+   d:'让功率按指令流动。电网之所以能稳定，靠的不是硬件，是反馈控制。',
+   k:['反馈','稳定性','最优控制']},
+  {id:'bioenerg',n:'生物能学',l:'base',x:1005,y:940,a:'光合 代谢',
+   d:'光合与代谢的能量账。生物质、生态系统的物质循环，底层都是这套规则。',
+   k:['光合作用','代谢','能量金字塔']},
+  {id:'behavior',n:'人因与行为',l:'base',x:1230,y:860,a:'用能行为 需求响应',
+   d:'用能行为的心理与社会规律。需求侧能不能被“调度”，取决于人而不只是设备。',
+   k:['偏好','习惯','需求响应']},
+
+  /* ---------- 技术层 ---------- */
+  {id:'biomass',n:'生物质',l:'tech',c:'一次能源',x:110,y:415,a:'秸秆 沼气',
+   d:'把光合产物直接当燃料。是否低碳，取决于它再生得有多快、以及土地怎么用。',
+   k:['秸秆','气化','厌氧消化']},
+  {id:'geo',n:'地热',l:'tech',c:'一次能源',x:110,y:500,a:'干热岩',
+   d:'取地下热储，既能发电也能直接供热，容量因子高得罕见。',
+   k:['热储','干热岩','ORC']},
+  {id:'fission',n:'核裂变',l:'tech',c:'一次能源',x:110,y:585,a:'核电 铀',
+   d:'重核分裂释能，是能量密度最高的可控电源，代价是乏燃料与公众接受度。',
+   k:['链式反应','慢化剂','乏燃料']},
+  {id:'hydro',n:'水电',l:'tech',c:'转换',x:225,y:460,a:'水电站 抽蓄',
+   d:'最成熟的可调节电源，靠水位差调峰，本质上是“自带水库的储能”。',
+   k:['水头','径流','抽水蓄能']},
+  {id:'combustion',n:'燃烧与锅炉',l:'tech',c:'转换',x:340,y:415,a:'烧 火焰',
+   d:'化石能源释放热量的主通道，也是全球排放的主来源。效率每提高一个点，减排量都很可观。',
+   k:['空燃比','火焰','NOx']},
+  {id:'engine',n:'内燃机',l:'tech',c:'转换',x:340,y:500,a:'发动机 汽油机',
+   d:'移动场景的霸主，被卡诺效率和燃料能量密度同时约束——这正是电动化难啃的部分。',
+   k:['奥托/狄塞尔','压缩比','后处理']},
+  {id:'wind',n:'风电',l:'tech',c:'转换',x:340,y:585,a:'风机 风能',
+   d:'风轮截获动能，功率正比于风速的三次方。贝兹极限决定了理论上最多只能取走 59%。',
+   k:['贝兹极限','叶尖速比','容量因子']},
+  {id:'steamturb',n:'汽轮机',l:'tech',c:'转换',x:460,y:415,a:'蒸汽轮机',
+   d:'高温高压蒸汽推动叶片。燃煤、核电、光热发电，最后几乎都接到它身上。',
+   k:['朗肯循环','再热','凝汽器']},
+  {id:'gasturb',n:'燃气轮机',l:'tech',c:'转换',x:460,y:500,a:'燃机 联合循环',
+   d:'燃气膨胀做功，配合余热锅炉组成联合循环，效率可超过 60%，是化石能源的效率冠军。',
+   k:['布雷顿循环','压气机','透平']},
+  {id:'pv',n:'光伏',l:'tech',core:1,c:'转换',x:570,y:415,a:'太阳能 电池板 硅',
+   d:'光子直接激发电子，没有转动部件的发电方式。它的成本十年降了一个数量级，改变了整个电力系统的假设。',
+   k:['PN 结','开路电压','转换效率','衰减']},
+  {id:'fuelcell',n:'燃料电池',l:'tech',c:'转换',x:570,y:500,a:'氢 电堆',
+   d:'燃料与氧在电极上反应，直接出电。效率不受卡诺限制，但贵金属和寿命是两道坎。',
+   k:['PEMFC/SOFC','三相界面','铂载量']},
+  {id:'csp',n:'光热发电',l:'tech',c:'转换',x:570,y:585,a:'聚光 熔盐',
+   d:'聚光成热再发电。效率不如光伏，但自带廉价储热，能供电到晚上。',
+   k:['聚光比','熔盐','光热电站']},
+  {id:'electrolyzer',n:'电解槽',l:'tech',c:'载体',x:690,y:460,a:'制氢 电解水',
+   d:'用电把水拆成氢，把过剩的电力换成化学键存起来——这是“电转 X”的入口。',
+   k:['PEM/碱性/SOEC','法拉第效率','电耗']},
+  {id:'ccus',n:'碳捕集与封存',l:'tech',c:'横切',x:690,y:570,a:'CCS 碳捕捉',
+   d:'把排放的 CO₂ 抓回来。它是给化石能源续命的技术补丁，也是少有的“负排放”手段。',
+   k:['胺法吸收','封存','负排放']},
+  {id:'battery',n:'电池',l:'tech',core:1,c:'存储',x:810,y:415,a:'锂电 储能 动力电池',
+   d:'把电能存进化学键。它同时决定了电动车能跑多远、电网能消纳多少风光——能量密度与循环寿命是两个反向拉扯的指标。',
+   k:['能量密度','循环寿命','SEI','快充']},
+  {id:'supercap',n:'超级电容',l:'tech',c:'存储',x:810,y:500,a:'电容 快充',
+   d:'靠双电层与赝电容储能。功率极高、寿命极长，但能量少，适合“瞬间补刀”。',
+   k:['双电层','功率密度','自放电']},
+  {id:'thermalstore',n:'储热',l:'tech',c:'存储',x:810,y:585,a:'蓄热 熔盐',
+   d:'最便宜的储能形式。把热存起来错峰用，工业余热和光热电站都靠它。',
+   k:['显热/潜热','熔盐','跨季储热']},
+  {id:'h2store',n:'储氢',l:'tech',c:'存储',x:925,y:415,a:'氢储运 高压氢',
+   d:'氢的体积能量密度很差，储存和运输才是真正的难点，不是制氢。',
+   k:['高压气态','液氢','金属氢化物']},
+  {id:'grid',n:'电网',l:'tech',core:1,c:'输运',x:1060,y:480,a:'电力系统 输配电',
+   d:'把“发电”和“用电”实时平衡的巨型机器。电几乎不能大规模直接存，所以它是整个能源系统的中枢与瓶颈。',
+   k:['潮流','调频','容量充裕度','输电阻塞']},
+  {id:'powerelec',n:'电力电子',l:'tech',c:'输运',x:1060,y:585,a:'变流器 IGBT',
+   d:'用开关器件变换电压与频率。新能源并网、快充、变频调速，关节都在这里。',
+   k:['IGBT/SiC','变流器','构网型']},
+  {id:'motor',n:'电机与驱动',l:'tech',c:'终端',x:1168,y:415,a:'马达 电动机',
+   d:'电能转机械能的主力，占全球用电近一半。效率每提升 1%，省下的电相当于好几座电站。',
+   k:['永磁同步','变频','效率等级']},
+  {id:'heatpump',n:'热泵',l:'tech',c:'终端',x:1168,y:500,a:'空调 采暖',
+   d:'搬运热量而不是制造热量，所以 COP 能到 3–4——这是建筑脱碳的核心技术。',
+   k:['逆卡诺','工质','低温供热']},
+  {id:'lighting',n:'照明与 LED',l:'tech',c:'终端',x:1292,y:415,a:'灯 光源',
+   d:'从白炽到 LED，同样的光只需几分之一的电。它是最成功、也最容易被忽视的能效故事。',
+   k:['发光效率','色温','蓝光']},
+  {id:'datacenter',n:'数据中心与算力',l:'tech',c:'终端',x:1292,y:500,a:'AI 算力 服务器',
+   d:'算力成了新的大用户。能效（PUE）、散热与余热回收，正在变成电力系统的规划变量。',
+   k:['PUE','液冷','余热回收']},
+
+  /* ---------- 系统层 ---------- */
+  {id:'transition',n:'转型与情景',l:'sys',x:270,y:105,a:'碳中和 情景 2050',
+   d:'用情景把技术装上时间轴：哪年淘汰什么、哪年补上什么。它连接技术可行性与政治承诺。',
+   k:['情景','IAM 模型','路径依赖']},
+  {id:'sysanalysis',n:'能源系统分析',l:'sys',core:1,x:395,y:190,a:'系统建模 优化',
+   d:'把资源、技术、成本、排放放进同一个模型算总账。能源研究的“总装车间”，把三层接起来。',
+   k:['供需平衡','系统优化','边际成本']},
+  {id:'metrics',n:'EROI 与 LCOE',l:'sys',x:520,y:105,a:'度电成本 净能量',
+   d:'衡量一种能源“值不值得做”的两把尺子：投进去的能量能收回几倍，以及每度电多少钱。',
+   k:['EROI','LCOE','容量因子']},
+  {id:'lca',n:'生命周期评价',l:'sys',x:645,y:190,a:'碳足迹 隐含能',
+   d:'从矿山到废弃，把全过程的环境账算清楚，避免“看起来干净、实际只是转移了污染”。',
+   k:['系统边界','碳足迹','隐含能']},
+  {id:'econ',n:'能源经济学',l:'sys',x:765,y:105,a:'价格 弹性',
+   d:'能源作为生产要素如何影响增长，价格信号如何传导，以及为什么它便宜却不可替代。',
+   k:['弹性','外部性','回弹效应']},
+  {id:'market',n:'电力市场',l:'sys',x:885,y:190,a:'电价 现货 交易',
+   d:'把电当商品交易：现货、辅助服务、容量机制。风光多了以后，市场规则得重写。',
+   k:['现货市场','出清','容量补偿']},
+  {id:'policy',n:'政策与碳定价',l:'sys',x:1000,y:105,a:'碳税 补贴',
+   d:'用价格、标准与补贴改变技术竞争的天平。技术路线之争，常常在这里被决定。',
+   k:['碳税/ETS','补贴','标准']},
+  {id:'climate',n:'气候科学',l:'sys',x:1110,y:190,a:'全球变暖 碳排放',
+   d:'地球的能量平衡与辐射强迫。它给所有能源活动设了一个不可讨价还价的终点约束。',
+   k:['辐射强迫','碳预算','反馈']},
+  {id:'geopolitics',n:'地缘政治与能源安全',l:'sys',x:1225,y:105,a:'石油 安全 依赖',
+   d:'资源分布、运输通道与相互依赖，决定了国家在能源上的战略选择与脆弱点。',
+   k:['依赖度','通道','战略储备']}
+];
+
+/* 关联边（无向，自动去重） */
+const LINKS=[
+  ['thermo','combustion'],['thermo','steamturb'],['thermo','gasturb'],['thermo','engine'],
+  ['thermo','heatpump'],['thermo','csp'],['thermo','thermalstore'],['thermo','fuelcell'],
+  ['statphys','thermo'],['statphys','solid'],['statphys','thermalstore'],
+  ['qm','solid'],['qm','pv'],['qm','catalysis'],['qm','fission'],
+  ['solid','pv'],['solid','powerelec'],['solid','lighting'],
+  ['em','powerelec'],['em','grid'],['em','motor'],['em','electrochem'],
+  ['electrochem','battery'],['electrochem','fuelcell'],['electrochem','electrolyzer'],['electrochem','supercap'],
+  ['catalysis','fuelcell'],['catalysis','electrolyzer'],['catalysis','biomass'],['catalysis','ccus'],
+  ['chemthermo','combustion'],['chemthermo','catalysis'],['chemthermo','biomass'],
+  ['matsei','pv'],['matsei','battery'],['matsei','wind'],['matsei','h2store'],['matsei','solid'],['matsei','motor'],
+  ['heatmass','steamturb'],['heatmass','thermalstore'],['heatmass','heatpump'],['heatmass','datacenter'],['heatmass','csp'],
+  ['fluid','wind'],['fluid','hydro'],['fluid','gasturb'],['fluid','engine'],['fluid','combustion'],
+  ['control','grid'],['control','wind'],['control','motor'],['control','powerelec'],
+  ['bioenerg','biomass'],['bioenerg','lca'],
+  ['mech','fluid'],['mech','wind'],['mech','hydro'],['mech','engine'],
+  ['math','control'],['math','sysanalysis'],['math','metrics'],
+  ['behavior','market'],['behavior','policy'],['behavior','heatpump'],['behavior','lighting'],
+  ['combustion','steamturb'],['combustion','gasturb'],['gasturb','steamturb'],
+  ['steamturb','grid'],['gasturb','grid'],['fission','steamturb'],['fission','grid'],
+  ['hydro','grid'],['wind','grid'],['pv','grid'],['csp','steamturb'],['geo','grid'],
+  ['fuelcell','motor'],['fuelcell','grid'],['h2store','fuelcell'],['electrolyzer','h2store'],
+  ['pv','electrolyzer'],['grid','electrolyzer'],
+  ['battery','motor'],['battery','grid'],['supercap','grid'],['thermalstore','csp'],['thermalstore','grid'],
+  ['ccus','combustion'],['ccus','climate'],
+  ['grid','powerelec'],['powerelec','motor'],['powerelec','battery'],['powerelec','pv'],
+  ['grid','lighting'],['grid','datacenter'],['grid','heatpump'],['grid','motor'],
+  ['grid','market'],['grid','sysanalysis'],['grid','policy'],
+  ['pv','policy'],['wind','policy'],['fission','policy'],['battery','market'],['datacenter','market'],
+  ['sysanalysis','metrics'],['sysanalysis','econ'],['sysanalysis','policy'],['sysanalysis','lca'],['sysanalysis','transition'],
+  ['metrics','econ'],['metrics','market'],['metrics','lca'],
+  ['econ','market'],['econ','policy'],['econ','geopolitics'],
+  ['market','policy'],['policy','climate'],['policy','transition'],['policy','geopolitics'],
+  ['climate','transition'],['geopolitics','market'],
+  ['lca','policy']
+];
+
+/* ============================================================ */
+const N={};
+NODES.forEach(n=>N[n.id]=n);
+
+const adj=new Map();
+NODES.forEach(n=>adj.set(n.id,[]));
+const seen=new Set();
+const EDGES=[];
+LINKS.forEach(([a,b])=>{
+  if(!N[a]||!N[b]) return;
+  const key=[a,b].sort().join('|');
+  if(seen.has(key)) return;
+  seen.add(key);
+  adj.get(a).push(b);
+  adj.get(b).push(a);
+  EDGES.push([a,b]);
+});
+
+const PATHS=[
+  {id:'battery',name:'电池路线',desc:'从半导体与电化学出发，经过材料与器件，最后落到电网与市场。',
+   steps:['solid','electrochem','matsei','battery','powerelec','grid','market']},
+  {id:'pv',name:'光伏路线',desc:'量子力学与固体物理 → 器件与材料 → 并网 → 政策。',
+   steps:['qm','solid','matsei','pv','powerelec','grid','policy']},
+  {id:'thermal',name:'热与动力路线',desc:'热力学的两条腿：传热与燃烧，然后是动力机械与并网。',
+   steps:['thermo','heatmass','combustion','steamturb','grid','climate']},
+  {id:'system',name:'系统分析路线',desc:'数学与控制 → 系统建模 → 成本度量 → 市场经济 → 政策。',
+   steps:['math','control','sysanalysis','metrics','econ','market','policy']}
+];
+
+/* ============================================================ */
+const svg=document.getElementById('map');
+const stage=document.getElementById('stage');
+const panel=document.getElementById('panel');
+const pbody=document.getElementById('pbody');
+const hint=document.getElementById('hint');
+
+const el=function(tag,attrs){
+  const e=document.createElementNS(NS,tag);
+  if(attrs) for(const k in attrs) e.setAttribute(k,attrs[k]);
+  return e;
+};
+const clamp=function(v,a,b){return Math.min(b,Math.max(a,v));};
+
+/* defs */
+const defs=el('defs');
+const glow=el('filter',{id:'glow',x:'-70%',y:'-70%',width:'240%',height:'240%'});
+const gb=el('feGaussianBlur',{stdDeviation:'4',result:'b'});
+const gm=el('feMerge');
+gm.appendChild(el('feMergeNode',{in:'b'}));
+gm.appendChild(el('feMergeNode',{in:'SourceGraphic'}));
+glow.appendChild(gb);glow.appendChild(gm);
+const dots=el('pattern',{id:'dots',width:'30',height:'30',patternUnits:'userSpaceOnUse'});
+dots.appendChild(el('circle',{cx:'1.4',cy:'1.4',r:'1.4',fill:'rgba(255,255,255,.055)'}));
+defs.appendChild(glow);defs.appendChild(dots);
+svg.appendChild(defs);
+
+const vp=el('g',{id:'viewport'});
+svg.appendChild(vp);
+const gBg=el('g'),gLinks=el('g'),gNodes=el('g');
+vp.appendChild(gBg);vp.appendChild(gLinks);vp.appendChild(gNodes);
+
+/* 背景与分层 */
+(function drawBg(){
+  gBg.appendChild(el('rect',{x:-400,y:-400,width:WORLD.w+800,height:WORLD.h+800,fill:'url(#dots)',opacity:'.75'}));
+  const bands=[
+    {y:60,h:210,label:'系统层 · 社会与市场'},
+    {y:360,h:300,label:'技术层 · 器件与系统'},
+    {y:730,h:270,label:'基础层 · 科学与工程'}
+  ];
+  bands.forEach(b=>{
+    gBg.appendChild(el('rect',{x:30,y:b.y,width:1340,height:b.h,rx:20,
+      fill:'rgba(255,255,255,.016)',stroke:'rgba(255,255,255,.05)','stroke-width':1}));
+    const t=el('text',{x:52,y:b.y+25,class:'band-label'});
+    t.textContent=b.label;
+    gBg.appendChild(t);
+  });
+  [['一次能源',168],['转换',450],['载体',690],['存储',865],['输运',1060],['终端',1240]].forEach(function(p){
+    const t=el('text',{x:p[1],y:342,class:'chain-label','text-anchor':'middle'});
+    t.textContent=p[0];
+    gBg.appendChild(t);
+    gBg.appendChild(el('line',{x1:p[1],y1:350,x2:p[1],y2:358,stroke:'rgba(255,255,255,.18)'}));
+  });
+})();
+
+/* 节点 */
+const nodeEls=new Map();
+NODES.forEach(function(n){
+  const g=el('g',{class:'node '+n.l+(n.core?' core':''),'data-id':n.id});
+  const rect=el('rect',{class:'pill'});
+  const txt=el('text',{class:'label','text-anchor':'middle',dy:'0.35em'});
+  txt.textContent=n.n;
+  const numBg=el('circle',{class:'num-bg',r:'9'});
+  const num=el('text',{class:'num','text-anchor':'middle',dy:'0.35em'});
+  g.appendChild(rect);g.appendChild(txt);g.appendChild(numBg);g.appendChild(num);
+  gNodes.appendChild(g);
+
+  const len=txt.getComputedTextLength();
+  const pad=n.core?19:14;
+  const h=n.core?34:30;
+  const w=Math.max(len+pad*2,n.core?96:64);
+  n.w=w;n.h=h;
+  rect.setAttribute('x',-w/2);rect.setAttribute('y',-h/2);
+  rect.setAttribute('width',w);rect.setAttribute('height',h);
+  rect.setAttribute('rx',h/2);rect.setAttribute('ry',h/2);
+  g.setAttribute('transform','translate('+n.x+','+n.y+')');
+  numBg.setAttribute('cx',-w/2-13);numBg.setAttribute('cy',0);
+  num.setAttribute('x',-w/2-13);num.setAttribute('y',0);
+
+  nodeEls.set(n.id,g);
+
+  g.addEventListener('mouseenter',function(){ if(!suppressHover) setHover(n.id); });
+  g.addEventListener('mouseleave',function(){ setHover(null); });
+  g.addEventListener('click',function(ev){ ev.stopPropagation(); if(suppressClick) return; select(n.id); });
+});
+
+/* 连线 */
+const linkEls=[];
+EDGES.forEach(function(e){
+  const a=N[e[0]],b=N[e[1]];
+  const p=el('path',{class:'link'});
+  gLinks.appendChild(p);
+  linkEls.push({a:e[0],b:e[1],el:p});
+  layoutLink(linkEls[linkEls.length-1]);
+});
+
+function anchorPt(from,to){
+  const dx=to.x-from.x, dy=to.y-from.y;
+  if(dx===0&&dy===0) return {x:from.x,y:from.y};
+  const hw=from.w/2+3, hh=from.h/2+3;
+  const tx=dx===0?Infinity:hw/Math.abs(dx);
+  const ty=dy===0?Infinity:hh/Math.abs(dy);
+  const t=Math.min(tx,ty);
+  return {x:from.x+dx*t,y:from.y+dy*t};
+}
+function layoutLink(L){
+  const a=N[L.a],b=N[L.b];
+  const p1=anchorPt(a,b),p2=anchorPt(b,a);
+  const dx=p2.x-p1.x,dy=p2.y-p1.y;
+  let c1,c2;
+  if(Math.abs(dy)>Math.abs(dx)*0.8){
+    c1={x:p1.x,y:p1.y+dy*0.45};c2={x:p2.x,y:p2.y-dy*0.45};
+  }else{
+    c1={x:p1.x+dx*0.45,y:p1.y};c2={x:p2.x-dx*0.45,y:p2.y};
+  }
+  L.el.setAttribute('d','M'+p1.x+','+p1.y+' C'+c1.x+','+c1.y+' '+c2.x+','+c2.y+' '+p2.x+','+p2.y);
+}
+
+/* ============================================================
+   视图状态
+   ============================================================ */
+let view={k:1,tx:0,ty:0};
+let selected=null,hovered=null,activePath=null;
+let panelOpen=false,suppressClick=false,suppressHover=false;
+let tween=null;
+
+function applyView(){
+  vp.setAttribute('transform','translate('+view.tx+' '+view.ty+') scale('+view.k+')');
+}
+function fit(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  const pad=26;
+  const k=Math.min((w-pad*2)/WORLD.w,(h-pad*2)/WORLD.h);
+  view.k=clamp(k,0.3,1.2);
+  view.tx=(w-WORLD.w*view.k)/2;
+  view.ty=(h-WORLD.h*view.k)/2;
+  applyView();
+}
+function stopTween(){ if(tween){cancelAnimationFrame(tween);tween=null;} }
+function animateTo(k,tx,ty){
+  stopTween();
+  const s={k:view.k,tx:view.tx,ty:view.ty},t0=performance.now(),dur=340;
+  function step(t){
+    const e=Math.min(1,(t-t0)/dur);
+    const p=1-Math.pow(1-e,3);
+    view.k=s.k+(k-s.k)*p;
+    view.tx=s.tx+(tx-s.tx)*p;
+    view.ty=s.ty+(ty-s.ty)*p;
+    applyView();
+    if(e<1) tween=requestAnimationFrame(step); else tween=null;
+  }
+  tween=requestAnimationFrame(step);
+}
+
+/* ============================================================
+   高亮 / 渲染
+   ============================================================ */
+function paint(){
+  nodeEls.forEach(function(g,id){ g.classList.remove('off','hot','inpath','fade'); });
+  linkEls.forEach(function(L){ L.el.classList.remove('off','on','path'); });
+
+  if(activePath){
+    const idx={};
+    activePath.steps.forEach(function(id,i){idx[id]=i;});
+    nodeEls.forEach(function(g,id){
+      if(idx[id]!==undefined){
+        g.classList.add('inpath');
+        const num=g.querySelector('.num');
+        num.textContent=idx[id]+1;
+      }else{
+        g.classList.add('off');
+      }
+    });
+    linkEls.forEach(function(L){
+      const ia=idx[L.a],ib=idx[L.b];
+      if(ia!==undefined&&ib!==undefined&&Math.abs(ia-ib)===1) L.el.classList.add('path');
+      else L.el.classList.add('off');
+    });
+    return;
+  }
+
+  const focus=hovered||selected;
+  if(focus){
+    const near=new Set([focus]);
+    (adj.get(focus)||[]).forEach(function(x){near.add(x);});
+    nodeEls.forEach(function(g,id){
+      if(id===focus) g.classList.add('hot');
+      else if(!near.has(id)) g.classList.add('off');
+    });
+    linkEls.forEach(function(L){
+      if(L.a===focus||L.b===focus) L.el.classList.add('on');
+      else L.el.classList.add('off');
+    });
+    return;
+  }
+
+  const c=chapterObj();
+  if(c.layer){
+    nodeEls.forEach(function(g,id){
+      if(N[id].l!==c.layer) g.classList.add('fade');
+    });
+    linkEls.forEach(function(L){
+      if(N[L.a].l===c.layer||N[L.b].l===c.layer) return;
+      L.el.classList.add('off');
+    });
+  }
+}
+
+function setHover(id){
+  hovered=id;
+  paint();
+}
+
+/* ============================================================
+   选择与面板
+   ============================================================ */
+function layerName(l){return l==='base'?'基础科学':l==='tech'?'技术器件':'系统社会';}
+
+function openPanel(){ panelOpen=true; panel.classList.add('open'); }
+function closePanel(){
+  panelOpen=false; panel.classList.remove('open');
+  if(selected){ selected=null; nodeEls.forEach(function(g){g.classList.remove('sel');}); paint(); }
+}
+function clearSelection(){
+  if(location.hash&&location.hash!=='#/'+chapter){ nav('#/'+chapter); return; }
+  activePath=null; selected=null;
+  closePanel();
+  paint();
+  markToc();
+}
+
+function ensureVisible(n){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  const panelW=panelOpen?Math.min(392,w*0.48):0;
+  const sx=view.tx+n.x*view.k, sy=view.ty+n.y*view.k;
+  const padX=90,padY=70;
+  if(sx>padX&&sx<w-panelW-padX&&sy>padY&&sy<h-padY) return;
+  const cx=(w-panelW)/2, cy=h/2;
+  animateTo(view.k,cx-n.x*view.k,cy-n.y*view.k);
+}
+
+function select(id){ nav('#/n/'+id); }
+
+function openNode(id){
+  const n=N[id];
+  if(!n) return;
+  selected=id; activePath=null;
+  nodeEls.forEach(function(g){ g.classList.toggle('sel',g.getAttribute('data-id')===id); });
+  renderNode(n);
+  openPanel();
+  ensureVisible(n);
+  paint();
+  markToc();
+  hideHint();
+}
+
+function renderNode(n){
+  const near=(adj.get(n.id)||[]).map(function(x){return N[x];});
+  const html=
+    '<div class="p-badges">'+
+      '<span class="b '+n.l+'">'+layerName(n.l)+'</span>'+
+      (n.c?'<span class="b chain">'+n.c+'</span>':'')+
+      (n.core?'<span class="b chain">核心节点</span>':'')+
+    '</div>'+
+    '<h2>'+n.n+'</h2>'+
+    '<p class="lede">'+n.d+'</p>'+
+    '<div class="p-block"><h3>核心概念</h3><div class="chips">'+
+      n.k.map(function(x){return '<span>'+x+'</span>';}).join('')+
+    '</div></div>'+
+    '<div class="p-block"><h3>直接关联 · '+near.length+'</h3><div class="chips">'+
+      near.map(function(m){return '<button class="lchip '+m.l+'" data-id="'+m.id+'">'+m.n+'</button>';}).join('')+
+    '</div></div>';
+  pbody.innerHTML=html;
+  pbody.querySelectorAll('button[data-id]').forEach(function(b){
+    b.addEventListener('click',function(){ select(b.getAttribute('data-id')); });
+  });
+}
+
+function openPath(p){
+  activePath=p; selected=null;
+  nodeEls.forEach(function(g){g.classList.remove('sel');});
+  pbody.innerHTML=
+    '<div class="p-badges"><span class="b path">学习路径</span></div>'+
+    '<h2>'+p.name+'</h2>'+
+    '<p class="lede">'+p.desc+'</p>'+
+    '<div class="p-block"><h3>'+p.steps.length+' 站</h3>'+
+      '<ol class="steps">'+p.steps.map(function(id,i){
+        const m=N[id];
+        return '<li data-id="'+id+'"><b>'+(i+1)+'</b><span>'+m.n+'</span><em>'+
+          (m.l==='base'?'基础':m.l==='tech'?'技术':'系统')+'</em></li>';
+      }).join('')+'</ol></div>';
+  pbody.querySelectorAll('li[data-id]').forEach(function(li){
+    li.addEventListener('click',function(){ select(li.getAttribute('data-id')); });
+  });
+  openPanel();
+  paint();
+  markToc();
+  // 路径整体居中
+  const xs=p.steps.map(function(id){return N[id].x;});
+  const ys=p.steps.map(function(id){return N[id].y;});
+  const cx=(Math.min.apply(null,xs)+Math.max.apply(null,xs))/2;
+  const cy=(Math.min.apply(null,ys)+Math.max.apply(null,ys))/2;
+  const w=stage.clientWidth,h=stage.clientHeight;
+  const panelW=Math.min(392,w*0.48);
+  const k=clamp(view.k,0.55,1);
+  animateTo(k,(w-panelW)/2-cx*k,h/2-cy*k);
+  hideHint();
+}
+
+/* ============================================================
+   交互：缩放 / 平移
+   ============================================================ */
+let drag=null;
+
+svg.addEventListener('wheel',function(e){
+  e.preventDefault();
+  stopTween();
+  const r=svg.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const k2=clamp(view.k*Math.exp(-e.deltaY*0.0013),0.28,2.8);
+  const f=k2/view.k;
+  view.tx=mx-(mx-view.tx)*f;
+  view.ty=my-(my-view.ty)*f;
+  view.k=k2;
+  applyView();
+  hideHint();
+},{passive:false});
+
+stage.addEventListener('pointerdown',function(e){
+  if(e.button!==0) return;
+  if(e.target.closest('#panel')) return;
+  drag={x:e.clientX,y:e.clientY,tx:view.tx,ty:view.ty,moved:false,id:e.pointerId};
+  stopTween();
+});
+stage.addEventListener('pointermove',function(e){
+  if(!drag||e.pointerId!==drag.id) return;
+  const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+  if(!drag.moved&&Math.abs(dx)+Math.abs(dy)>4){
+    drag.moved=true;
+    stage.classList.add('grabbing');
+    stage.setPointerCapture(drag.id);
+    suppressHover=true;
+    setHover(null);
+    hideHint();
+  }
+  if(drag.moved){
+    view.tx=drag.tx+dx;view.ty=drag.ty+dy;
+    applyView();
+  }
+});
+stage.addEventListener('pointerup',function(e){
+  if(!drag) return;
+  const moved=drag.moved;
+  drag=null;
+  stage.classList.remove('grabbing');
+  suppressHover=false;
+  if(moved){
+    suppressClick=true;
+    setTimeout(function(){suppressClick=false;},60);
+  }else if(!e.target.closest('.node')&&!e.target.closest('#panel')){
+    clearSelection();
+  }
+});
+stage.addEventListener('pointercancel',function(){
+  drag=null;stage.classList.remove('grabbing');suppressHover=false;
+});
+
+/* ============================================================
+   章节（翻页）
+   ============================================================ */
+const CHAPTERS=[
+  {id:'overview',name:'总览',band:null},
+  {id:'base',name:'基础层',band:[730,1000],layer:'base'},
+  {id:'tech',name:'技术层',band:[360,660],layer:'tech'},
+  {id:'sys',name:'系统层',band:[60,270],layer:'sys'},
+  {id:'paths',name:'学习路径',band:null}
+];
+const COLOR={base:'#38bdf8',tech:'#fbbf24',sys:'#a78bfa'};
+let chapter='overview';
+let inited=false;
+
+function chapterObj(){
+  for(let i=0;i<CHAPTERS.length;i++) if(CHAPTERS[i].id===chapter) return CHAPTERS[i];
+  return CHAPTERS[0];
+}
+function chIndex(){
+  for(let i=0;i<CHAPTERS.length;i++) if(CHAPTERS[i].id===chapter) return i;
+  return 0;
+}
+
+const chBox=document.querySelector('#chapters .ch');
+CHAPTERS.forEach(function(c){
+  const b=document.createElement('button');
+  b.className='cbtn'; b.textContent=c.name; b.setAttribute('data-c',c.id);
+  b.addEventListener('click',function(){ nav('#/'+c.id); });
+  chBox.appendChild(b);
+});
+
+function renderTabs(){
+  document.querySelectorAll('.cbtn').forEach(function(b){
+    b.classList.toggle('on',b.getAttribute('data-c')===chapter);
+  });
+  document.getElementById('cnum').textContent=(chIndex()+1)+' / '+CHAPTERS.length;
+}
+
+function renderToc(){
+  const box=document.getElementById('toc');
+  const head=document.getElementById('toch');
+  let html='';
+  if(chapter==='paths'){
+    head.textContent='四条路径 · '+PATHS.length;
+    html=PATHS.map(function(p){
+      return '<button class="toc-item" data-p="'+p.id+'"><i style="background:#38bdf8"></i>'+
+        p.name+'<em>'+p.steps.length+'</em></button>';
+    }).join('');
+  }else{
+    const c=chapterObj();
+    const layers=c.layer?[c.layer]:['base','tech','sys'];
+    head.textContent=c.layer
+      ? layerName(c.layer)+' · '+NODES.filter(function(n){return n.l===c.layer;}).length
+      : '全部节点 · '+NODES.length;
+    layers.forEach(function(l){
+      const list=NODES.filter(function(n){return n.l===l;});
+      if(!c.layer) html+='<div class="toc-group">'+layerName(l)+' · '+list.length+'</div>';
+      html+=list.map(function(n){
+        return '<button class="toc-item" data-n="'+n.id+'"><i style="background:'+COLOR[l]+'"></i>'+n.n+'</button>';
+      }).join('');
+    });
+  }
+  box.innerHTML=html;
+  box.querySelectorAll('.toc-item').forEach(function(b){
+    b.addEventListener('click',function(){
+      if(b.hasAttribute('data-n')) nav('#/n/'+b.getAttribute('data-n'));
+      else nav('#/p/'+b.getAttribute('data-p'));
+    });
+  });
+  markToc();
+}
+
+function markToc(){
+  document.querySelectorAll('.toc-item').forEach(function(b){
+    const id=b.getAttribute('data-n');
+    b.classList.toggle('on',!!id&&id===selected);
+  });
+}
+
+function frameBand(y0,y1,instant){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  const k=clamp(Math.min((w-70)/1360,(h-90)/(y1-y0)),0.3,1.6);
+  const tx=w/2-700*k, ty=h/2-((y0+y1)/2)*k;
+  if(instant){ stopTween(); view.k=k; view.tx=tx; view.ty=ty; applyView(); }
+  else animateTo(k,tx,ty);
+}
+function fitAnim(){
+  const w=stage.clientWidth,h=stage.clientHeight;
+  const k=clamp(Math.min((w-52)/WORLD.w,(h-52)/WORLD.h),0.3,1.2);
+  animateTo(k,(w-WORLD.w*k)/2,(h-WORLD.h*k)/2);
+}
+
+function goChapter(id){
+  let c=CHAPTERS[0];
+  CHAPTERS.forEach(function(x){ if(x.id===id) c=x; });
+  chapter=c.id;
+  selected=null; activePath=null;
+  nodeEls.forEach(function(g){g.classList.remove('sel');});
+  closePanel();
+  renderTabs(); renderToc(); paint();
+  if(c.band) frameBand(c.band[0],c.band[1],!inited);
+  else if(!inited){ stopTween(); fit(); }
+  else fitAnim();
+  inited=true;
+  hideHint();
+}
+
+function nav(h){
+  if(location.hash===h) applyHash();
+  else location.hash=h;
+}
+
+function applyHash(){
+  const raw=location.hash.replace(/^#\/?/,'');
+  if(raw.indexOf('n/')===0&&N[raw.slice(2)]){ openNode(raw.slice(2)); return; }
+  if(raw.indexOf('p/')===0){
+    let p=null;
+    PATHS.forEach(function(x){ if(x.id===raw.slice(2)) p=x; });
+    if(p){
+      if(chapter!=='paths'){ chapter='paths'; renderTabs(); renderToc(); }
+      openPath(p); return;
+    }
+  }
+  let ok=false;
+  CHAPTERS.forEach(function(c){ if(c.id===raw) ok=true; });
+  goChapter(ok?raw:'overview');
+}
+
+function stepCh(d){
+  const i=(chIndex()+d+CHAPTERS.length)%CHAPTERS.length;
+  nav('#/'+CHAPTERS[i].id);
+}
+
+document.getElementById('stat').innerHTML=
+  '<b>'+NODES.length+'</b> 个节点 · <b>'+EDGES.length+'</b> 条关联<br>'+
+  '三层结构：科学 → 技术 → 系统';
+
+/* ============================================================
+   搜索
+   ============================================================ */
+const q=document.getElementById('q');
+const results=document.getElementById('results');
+let resultItems=[],actIdx=-1;
+
+function search(term){
+  const t=term.trim().toLowerCase();
+  if(!t){results.classList.remove('show');results.innerHTML='';resultItems=[];return;}
+  resultItems=NODES.filter(function(n){
+    const hay=(n.n+' '+(n.a||'')+' '+n.k.join(' ')+' '+(n.d||'')).toLowerCase();
+    return hay.indexOf(t)>=0;
+  }).slice(0,8);
+  if(!resultItems.length){
+    results.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--dim)">没有匹配的节点</div>';
+    results.classList.add('show');
+    return;
+  }
+  results.innerHTML=resultItems.map(function(n,i){
+    return '<button data-i="'+i+'"><span class="dot" style="background:'+
+      (n.l==='base'?'#38bdf8':n.l==='tech'?'#fbbf24':'#a78bfa')+
+      '"></span>'+n.n+'<span class="ly">'+(n.l==='base'?'基础':n.l==='tech'?'技术':'系统')+'</span></button>';
+  }).join('');
+  results.classList.add('show');
+  actIdx=-1;
+  results.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click',function(){
+      const n=resultItems[+b.getAttribute('data-i')];
+      q.value='';results.classList.remove('show');
+      select(n.id);
+    });
+  });
+}
+q.addEventListener('input',function(){search(q.value);});
+q.addEventListener('focus',function(){ if(q.value) search(q.value); });
+q.addEventListener('keydown',function(e){
+  const btns=results.querySelectorAll('button');
+  if(e.key==='Escape'){ q.value='';results.classList.remove('show');q.blur();return; }
+  if(!btns.length) return;
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    e.preventDefault();
+    actIdx=(actIdx+(e.key==='ArrowDown'?1:-1)+btns.length)%btns.length;
+    btns.forEach(function(b,i){b.classList.toggle('act',i===actIdx);});
+    btns[actIdx].scrollIntoView({block:'nearest'});
+  }
+  if(e.key==='Enter'){
+    const b=btns[actIdx>=0?actIdx:0];
+    if(b){b.click();}
+  }
+});
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.search')) results.classList.remove('show');
+});
+
+/* ============================================================
+   其它
+   ============================================================ */
+document.getElementById('fit').addEventListener('click',function(){stopTween();fit();});
+document.getElementById('reset').addEventListener('click',function(){ nav('#/overview'); });
+document.getElementById('close').addEventListener('click',clearSelection);
+document.getElementById('prev').addEventListener('click',function(){ stepCh(-1); });
+document.getElementById('next').addEventListener('click',function(){ stepCh(1); });
+document.addEventListener('keydown',function(e){
+  if(e.target&&e.target.tagName==='INPUT') return;
+  if(e.key==='Escape'){ clearSelection(); return; }
+  if(e.key==='ArrowRight'){ e.preventDefault(); stepCh(1); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); stepCh(-1); }
+});
+
+let hintTimer=setTimeout(hideHint,9000);
+function hideHint(){ hint.classList.add('hide'); clearTimeout(hintTimer); }
+
+/* init */
+window.addEventListener('hashchange',applyHash);
+applyHash();
+inited=true;
+
+requestAnimationFrame(function(){
+  requestAnimationFrame(function(){
+    if(chapter==='overview'&&!selected&&!activePath) fit();
+  });
+});
+
+})();
+</script>
+</body>
+</html>
